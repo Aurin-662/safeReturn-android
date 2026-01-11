@@ -2,49 +2,44 @@ package com.example.a1;
 
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.EditText;import android.widget.TextView;
+import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.firebase.auth.FirebaseAuth; // Import this
 
 public class signupA extends AppCompatActivity {
+    private FirebaseAuth mAuth; // Declaration
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.signup);
 
-        // Finding all views
-        EditText etFirstName = findViewById(R.id.etFirstName);
-        EditText etLastName = findViewById(R.id.etLastName);
-        EditText etRoll = findViewById(R.id.etRoll);
-        EditText etPhone = findViewById(R.id.etPhone);
+        mAuth = FirebaseAuth.getInstance(); // Initialize
+
         EditText etEmail = findViewById(R.id.etEmailSignup);
         EditText etPassword = findViewById(R.id.etPasswordSignup);
         Button btnSignup = findViewById(R.id.btnSignup);
-        TextView tvBackToLogin = findViewById(R.id.tvBackToLogin);
 
         btnSignup.setOnClickListener(v -> {
-            // Get text from all fields
-            String fName = etFirstName.getText().toString().trim();
-            String lName = etLastName.getText().toString().trim();
-            String roll = etRoll.getText().toString().trim();
-            String phone = etPhone.getText().toString().trim();
             String email = etEmail.getText().toString().trim();
-            String pass = etPassword.getText().toString().trim();
+            String password = etPassword.getText().toString().trim();
 
-            // Validation logic
-            if (fName.isEmpty() || lName.isEmpty() || roll.isEmpty() ||
-                    phone.isEmpty() || email.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
-            } else if (pass.length() < 6) {
-                Toast.makeText(this, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show();
-            } else {
-                // TODO: Save this data to Firebase
-                Toast.makeText(this, "Registering " + fName + "...", Toast.LENGTH_SHORT).show();
-                // For now, return to login after success
-                finish();
+            if (email.isEmpty() || password.length() < 6) {
+                Toast.makeText(this, "Valid email and 6-char password required", Toast.LENGTH_SHORT).show();
+                return;
             }
-        });
 
-        tvBackToLogin.setOnClickListener(v -> finish());
+            // --- FIREBASE CREATE USER ---
+            mAuth.createUserWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(signupA.this, "Signup Successful!", Toast.LENGTH_SHORT).show();
+                            finish(); // Go back to Login
+                        } else {
+                            Toast.makeText(signupA.this, "Error: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+        });
     }
 }
