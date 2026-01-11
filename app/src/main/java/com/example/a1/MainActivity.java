@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         // Subscribe to notifications topic
         com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("all_items").addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                // Success subscription
+                // success subscription
             }
         });
 
@@ -163,9 +163,15 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
-        // NEW: Navigate to Responses screen
         else if (id == R.id.action_responses) {
             Intent intent = new Intent(MainActivity.this, ResponsesActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
+        // NEW: Navigate to Profile screen
+        else if (id == R.id.action_profile) {
+            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
             startActivity(intent);
             return true;
         }

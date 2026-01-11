@@ -1,9 +1,7 @@
 package com.example.a1;
 
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -14,23 +12,17 @@ import java.util.List;
 public class ResponsesActivity extends AppCompatActivity {
 
     private ListView lvResponses;
-    private List<String> responseMessages;
-    private ArrayAdapter<String> adapter;
+    private List<ResponseModel> responseList;
+    private ResponseAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_responses);
 
-        // টাইটেল সেট করা
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Responses");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-
         lvResponses = findViewById(R.id.lvResponses);
-        responseMessages = new ArrayList<>();
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, responseMessages);
+        responseList = new ArrayList<>();
+        adapter = new ResponseAdapter(this, responseList);
         lvResponses.setAdapter(adapter);
 
         loadResponses();
@@ -39,40 +31,23 @@ public class ResponsesActivity extends AppCompatActivity {
     private void loadResponses() {
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        // শুধুমাত্র আমার পোস্টের (posterId) রেসপন্সগুলো আনবে
         FirebaseFirestore.getInstance().collection("responses")
                 .whereEqualTo("posterId", currentUserId)
                 .addSnapshotListener((value, error) -> {
-                    if (error != null) {
-                        Toast.makeText(this, "Error loading data", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
                     if (value != null) {
-                        responseMessages.clear();
-
+                        responseList.clear();
                         for (DocumentSnapshot doc : value.getDocuments()) {
-                            ResponseModel res = new ResponseModel(            doc.getString("responderName"),
-                                    doc.getString("responderPhone"), // নতুন ফিল্ড
+                            ResponseModel res = new ResponseModel(
+                                    doc.getId(), // Fetching the Document ID for deletion
+                                    doc.getString("responderName"),
+                                    doc.getString("responderPhone"),
                                     doc.getString("itemName"),
                                     doc.getString("type")
                             );
-                            responseMessages.add(res.getDisplayMessage());
+                            responseList.add(res);
                         }
-
-
-                        if (responseMessages.isEmpty()) {
-                            responseMessages.add("No responses yet.");
-                        }
-
                         adapter.notifyDataSetChanged();
                     }
                 });
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
     }
 }
