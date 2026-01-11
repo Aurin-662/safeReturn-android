@@ -16,6 +16,9 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class activity_details extends AppCompatActivity {
 
     private String title, location, type, question, answer, posterUserId, imageUrl, postId, category, description;
@@ -28,7 +31,7 @@ public class activity_details extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_details);
 
-        // 1. Receive data from Intent (Passed from PostAdapter)
+        // 1. Receive data from Intent
         title = getIntent().getStringExtra("title");
         location = getIntent().getStringExtra("location");
         type = getIntent().getStringExtra("type");
@@ -55,17 +58,16 @@ public class activity_details extends AppCompatActivity {
         tvType.setText(type + " | " + (category != null ? category : "General"));
         tvDescription.setText("Location: " + location + "\n\nVerify identity to see contact info.");
 
-        // Load Image
         if (imageUrl != null && !imageUrl.isEmpty()) {
             Glide.with(this).load(imageUrl).placeholder(android.R.drawable.ic_menu_gallery).into(ivDetailImage);
         }
 
-        // 4. Ownership Logic: Show Edit/Delete only for the creator
+        // 4. Ownership Logic
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         if (currentUserId.equals(posterUserId)) {
             btnEdit.setVisibility(View.VISIBLE);
             btnDelete.setVisibility(View.VISIBLE);
-            btnAction.setVisibility(View.GONE); // Owner doesn't need to verify themselves
+            btnAction.setVisibility(View.GONE);
             fetchPosterName(true);
         } else {
             btnEdit.setVisibility(View.GONE);
@@ -74,11 +76,15 @@ public class activity_details extends AppCompatActivity {
             fetchPosterName(false);
         }
 
+        if ("LOST".equalsIgnoreCase(type)) {
+            btnAction.setText("I Found It!");
+        } else {
+            btnAction.setText("Claim Item");
+        }
+
         // 5. Button Listeners
         btnAction.setOnClickListener(v -> showVerificationDialog());
-
         btnDelete.setOnClickListener(v -> confirmDelete());
-
         btnEdit.setOnClickListener(v -> {
             Intent intent = new Intent(activity_details.this, reportA.class);
             intent.putExtra("isEdit", true);
@@ -100,40 +106,25 @@ public class activity_details extends AppCompatActivity {
             tvPostedBy.setText("Posted by: You");
             return;
         }
-
-        // posterUserId ব্যবহার করে users কালেকশন থেকে নাম আনা
         FirebaseFirestore.getInstance().collection("users").document(posterUserId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
-                        // নিশ্চিত করুন যে আপনার Firestore-এ ফিল্ডের নাম 'firstName' ই আছে
                         String name = doc.getString("firstName");
-
-                        if (name != null && !name.isEmpty()) {
-                            tvPostedBy.setText("Posted by: " + name);
-                        } else {
-                            tvPostedBy.setText("Posted by: Unknown User");
-                        }
-                    } else {
-                        // যদি ইউজার প্রোফাইল না পাওয়া যায় (পুরনো ডাটা হলে এমন হতে পারে)
-                        tvPostedBy.setText("Posted by: Registered Student");
+                        tvPostedBy.setText("Posted by: " + (name != null ? name : "User"));
                     }
-                })
-                .addOnFailureListener(e -> {
-                    tvPostedBy.setText("Posted by: Error loading name");
                 });
     }
-
 
     private void confirmDelete() {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Post")
-                .setMessage("Are you sure? This cannot be undone.")
+                .setMessage("Are you sure?")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     FirebaseFirestore.getInstance().collection("items").document(postId)
                             .delete()
                             .addOnSuccessListener(aVoid -> {
-                                Toast.makeText(this, "Post removed", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, "Removed", Toast.LENGTH_SHORT).show();
                                 finish();
                             });
                 })
@@ -168,6 +159,10 @@ public class activity_details extends AppCompatActivity {
                     if (doc.exists()) {
                         String phone = doc.getString("phone");
                         tvDescription.setText("Verified Contact: " + phone);
+
+                        // NEW: Save the response so User1 knows User2 claimed it
+                        saveResponseToFirestore();
+
                         btnAction.setText("Call Now");
                         btnAction.setOnClickListener(v -> {
                             Intent intent = new Intent(Intent.ACTION_DIAL);
@@ -177,4 +172,29 @@ public class activity_details extends AppCompatActivity {
                     }
                 });
     }
+
+    // activity_details.java এর saveResponseToFirestore মেথডটি এভাবে পরিবর্তন করুন:
+    private void saveResponseToFirestore() {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // বর্তমান ইউজারের (যে ক্লেইম করছে) প্রোফাইল থেকে নাম ও ফোন আনা
+        FirebaseFirestore.getInstance().collection("users").document(currentUserId)
+                .get().addOnSuccessListener(userDoc -> {
+                    if (userDoc.exists()) {
+                        String responderName = userDoc.getString("firstName");
+                        String responderPhone = userDoc.getString("phone"); // ফোন নম্বর যোগ করা হলো
+
+                        Map<String, Object> response = new HashMap<>();
+                        response.put("posterId", posterUserId);
+                        response.put("responderName", responderName != null ? responderName : "Unknown User");
+                        response.put("responderPhone", responderPhone != null ? responderPhone : "No Phone");
+                        response.put("itemName", title);
+                        response.put("type", type);
+                        response.put("timestamp", System.currentTimeMillis());
+
+                        FirebaseFirestore.getInstance().collection("responses").add(response);
+                    }
+                });
+    }
+
 }

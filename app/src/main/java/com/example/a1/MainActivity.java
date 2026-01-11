@@ -29,6 +29,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Subscribe to notifications topic
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("all_items").addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                // Success subscription
+            }
+        });
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -119,10 +126,9 @@ public class MainActivity extends AppCompatActivity {
                     if (value != null) {
                         postList.clear();
                         for (DocumentSnapshot doc : value.getDocuments()) {
-                            // Extract ALL 10 fields matching the Post constructor
                             String title = doc.getString("title");
                             String location = doc.getString("location");
-                            String description = doc.getString("description"); // NEW: Extracted description
+                            String description = doc.getString("description");
                             String type = doc.getString("type");
                             String question = doc.getString("question");
                             String answer = doc.getString("answer");
@@ -131,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
                             String category = doc.getString("category");
                             String postId = doc.getId();
 
-                            // Create Post object with 10 arguments
                             postList.add(new Post(title, location, description, type, question, answer, userId, imageUrl, category, postId));
                         }
                         adapter.notifyDataSetChanged();
@@ -147,7 +152,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_logout) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_logout) {
             FirebaseAuth.getInstance().signOut();
             Intent intent = new Intent(MainActivity.this, WelcomeActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -155,6 +162,14 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return true;
         }
+
+        // NEW: Navigate to Responses screen
+        else if (id == R.id.action_responses) {
+            Intent intent = new Intent(MainActivity.this, ResponsesActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 }
