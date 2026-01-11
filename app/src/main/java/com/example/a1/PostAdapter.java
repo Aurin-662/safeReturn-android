@@ -32,14 +32,14 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
         holder.tvLocation.setText("Location: " + post.getLocation());
         holder.tvType.setText(post.getType());
 
-        // Set text color based on status (LOST/FOUND)
+        // টাইপ অনুযায়ী টেক্সট কালার সেট করা
         if ("LOST".equalsIgnoreCase(post.getType())) {
-            holder.tvType.setTextColor(0xFFFF0000); // Red
+            holder.tvType.setTextColor(0xFFFF0000); // লাল
         } else {
-            holder.tvType.setTextColor(0xFF00FF00); // Green
+            holder.tvType.setTextColor(0xFF00FF00); // সবুজ
         }
 
-        // --- Load Image using Glide ---
+        // --- Glide দিয়ে ইমেজ লোড করা ---
         if (post.getImageUrl() != null && !post.getImageUrl().isEmpty()) {
             Glide.with(holder.itemView.getContext())
                     .load(post.getImageUrl())
@@ -50,11 +50,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             holder.ivPostImage.setImageResource(android.R.drawable.ic_menu_gallery);
         }
 
-        // --- Handle Click to show Details ---
+        // --- আইটেমে ক্লিক করলে ডিটেইলস পেজে যাওয়া ---
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), activity_details.class);
 
-            // Passing all fields to the details page
+            // সব প্রয়োজনীয় ডেটা পাঠানো হচ্ছে
             intent.putExtra("title", post.getTitle());
             intent.putExtra("location", post.getLocation());
             intent.putExtra("type", post.getType());
@@ -64,9 +64,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             intent.putExtra("imageUrl", post.getImageUrl());
             intent.putExtra("category", post.getCategory());
             intent.putExtra("postId", post.getPostId());
-
-            // CRITICAL: Passing description so Edit Mode works correctly
             intent.putExtra("description", post.getDescription());
+
+            // NEW: Timestamp পাঠানো হচ্ছে যাতে ২ মাস হয়েছে কি না তা ডিটেইলস পেজে চেক করা যায়
+            intent.putExtra("timestamp", post.getTimestamp());
 
             v.getContext().startActivity(intent);
         });
@@ -90,7 +91,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
         }
     }
 
-    // Filter method for Search and Chips
     public void filterList(List<Post> filteredList) {
         this.postList = filteredList;
         notifyDataSetChanged();

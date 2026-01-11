@@ -22,6 +22,7 @@ import java.util.Map;
 public class activity_details extends AppCompatActivity {
 
     private String title, location, type, question, answer, posterUserId, imageUrl, postId, category, description;
+    private long timestamp;
     private TextView tvTitle, tvType, tvDescription, tvPostedBy;
     private ImageView ivDetailImage;
     private Button btnAction, btnDelete, btnEdit;
@@ -41,7 +42,8 @@ public class activity_details extends AppCompatActivity {
         imageUrl = getIntent().getStringExtra("imageUrl");
         postId = getIntent().getStringExtra("postId");
         category = getIntent().getStringExtra("category");
-        description = getIntent().getStringExtra("description");
+        description = getIntent().getStringExtra("description"); // Critical for display
+        timestamp = getIntent().getLongExtra("timestamp", 0);
 
         // 2. Initialize Views
         tvTitle = findViewById(R.id.tvDetailTitle);
@@ -55,9 +57,37 @@ public class activity_details extends AppCompatActivity {
 
         // 3. Set UI Content
         tvTitle.setText(title);
-        tvType.setText(type + " | " + (category != null ? category : "General"));
-        tvDescription.setText("Location: " + location + "\n\nVerify identity to see contact info.");
 
+        // --- FREE SECTION LOGIC ---
+        long sixtyDaysInMillis = 60L * 24 * 60 * 60 * 1000;
+        boolean isFreeItem = "FOUND".equalsIgnoreCase(type) && (System.currentTimeMillis() - timestamp > sixtyDaysInMillis);
+
+        if (isFreeItem) {
+            tvType.setText("FREE SECTION (Unclaimed Item)");
+            tvType.setTextColor(android.graphics.Color.parseColor("#FF9800")); // Orange
+            btnAction.setText("Claim for Free");
+        } else {
+            String categoryText = (category != null && !category.isEmpty()) ? " | " + category : "";
+            tvType.setText(type + categoryText);
+            if ("LOST".equalsIgnoreCase(type)) {
+                btnAction.setText("I Found It!");
+            } else {
+                btnAction.setText("Claim Item");
+            }
+        }
+
+        // --- UPDATED DESCRIPTION DISPLAY ---
+        StringBuilder fullDescription = new StringBuilder();
+        fullDescription.append("📍 Location: ").append(location != null ? location : "Not specified");
+        fullDescription.append("\n\n📝 Details:\n");
+        if (description != null && !description.isEmpty()) {
+            fullDescription.append(description);
+        } else {
+            fullDescription.append("No additional description provided.");
+        }
+        tvDescription.setText(fullDescription.toString());
+
+        // Load Image
         if (imageUrl != null && !imageUrl.isEmpty()) {
             Glide.with(this).load(imageUrl).placeholder(android.R.drawable.ic_menu_gallery).into(ivDetailImage);
         }
@@ -76,15 +106,22 @@ public class activity_details extends AppCompatActivity {
             fetchPosterName(false);
         }
 
-        if ("LOST".equalsIgnoreCase(type)) {
-            btnAction.setText("I Found It!");
-        } else {
-            btnAction.setText("Claim Item");
-        }
-
         // 5. Button Listeners
-        btnAction.setOnClickListener(v -> showVerificationDialog());
+        btnAction.setOnClickListener(v -> {
+            if (isFreeItem) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Free Claim")
+                        .setMessage("This item is now free to take. Reveal contact info?")
+                        .setPositiveButton("Yes", (dialog, which) -> revealContact())
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            } else {
+                showVerificationDialog();
+            }
+        });
+
         btnDelete.setOnClickListener(v -> confirmDelete());
+
         btnEdit.setOnClickListener(v -> {
             Intent intent = new Intent(activity_details.this, reportA.class);
             intent.putExtra("isEdit", true);
@@ -111,15 +148,18 @@ public class activity_details extends AppCompatActivity {
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
                         String name = doc.getString("firstName");
-                        tvPostedBy.setText("Posted by: " + (name != null ? name : "User"));
+                        tvPostedBy.setText("Posted by: " + (name != null ? name : "Registered User"));
+                    } else {
+                        tvPostedBy.setText("Posted by: User");
                     }
-                });
+                })
+                .addOnFailureListener(e -> tvPostedBy.setText("Posted by: Unknown"));
     }
 
     private void confirmDelete() {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Post")
-                .setMessage("Are you sure?")
+                .setMessage("Are you sure? This cannot be undone.")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     FirebaseFirestore.getInstance().collection("items").document(postId)
                             .delete()
@@ -158,9 +198,8 @@ public class activity_details extends AppCompatActivity {
                 .get().addOnSuccessListener(doc -> {
                     if (doc.exists()) {
                         String phone = doc.getString("phone");
-                        tvDescription.setText("Verified Contact: " + phone);
-
-                        // NEW: Save the response so User1 knows User2 claimed it
+                        String name = doc.getString("firstName");
+                        tvDescription.setText("✅ Verified Contact\nName: " + name + "\nPhone: " + phone);
                         saveResponseToFirestore();
 
                         btnAction.setText("Call Now");
@@ -173,16 +212,13 @@ public class activity_details extends AppCompatActivity {
                 });
     }
 
-    // activity_details.java এর saveResponseToFirestore মেথডটি এভাবে পরিবর্তন করুন:
     private void saveResponseToFirestore() {
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
-        // বর্তমান ইউজারের (যে ক্লেইম করছে) প্রোফাইল থেকে নাম ও ফোন আনা
         FirebaseFirestore.getInstance().collection("users").document(currentUserId)
                 .get().addOnSuccessListener(userDoc -> {
                     if (userDoc.exists()) {
                         String responderName = userDoc.getString("firstName");
-                        String responderPhone = userDoc.getString("phone"); // ফোন নম্বর যোগ করা হলো
+                        String responderPhone = userDoc.getString("phone");
 
                         Map<String, Object> response = new HashMap<>();
                         response.put("posterId", posterUserId);
@@ -196,5 +232,4 @@ public class activity_details extends AppCompatActivity {
                     }
                 });
     }
-
 }

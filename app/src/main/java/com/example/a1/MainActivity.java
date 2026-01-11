@@ -26,88 +26,90 @@ public class MainActivity extends AppCompatActivity {
     private List<Post> postList;
     private PostAdapter adapter;
     private FirebaseFirestore db;
+    private String currentTypeFilter = "ALL";
+    private SearchView searchView; // ক্লাস ভেরিয়েবল হিসেবে ডিক্লেয়ার করলাম
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Subscribe to notifications topic
-        com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("all_items").addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                // success subscription
-            }
-        });
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 1. Setup Toolbar
+        // ১. সাবস্ক্রাইব (super.onCreate এর পর দেওয়া ভালো)
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("all_items");
+
+        // ২. টুলবার সেটআপ
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Campus Lost & Found");
-        }
 
-        // 2. Initialize Firestore
+        // ৩. ফায়ারবেস ও লিস্ট ইনিশিয়ালাইজ
         db = FirebaseFirestore.getInstance();
-
-        // 3. Setup List and Adapter
         postList = new ArrayList<>();
         RecyclerView rvItems = findViewById(R.id.rvItems);
         rvItems.setLayoutManager(new LinearLayoutManager(this));
         adapter = new PostAdapter(postList);
         rvItems.setAdapter(adapter);
 
-        // 4. Load Live Data from Firestore
+        // ৪. ডাটা লোড
         loadDataFromFirestore();
 
-        // 5. Setup FAB (Report Activity)
-        FloatingActionButton fabAdd = findViewById(R.id.fabAdd);
-        fabAdd.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, reportA.class);
-            startActivity(intent);
-        });
-
-        // 6. Setup Search Bar
-        SearchView searchView = findViewById(R.id.searchView);
+        // ৫. সার্চ বার লজিক
+        searchView = findViewById(R.id.searchView);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
+            public boolean onQueryTextSubmit(String query) { return false; }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                filterByTitle(newText);
+                applyFilters(newText, currentTypeFilter);
                 return true;
             }
         });
 
-        // 7. Setup LOST/FOUND Filter Chips
+        // ৬. চিপ ফিল্টার লজিক
         ChipGroup chipGroup = findViewById(R.id.chipGroup);
         chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.contains(R.id.chipLost)) {
-                filterByType("LOST");
+                currentTypeFilter = "LOST";
             } else if (checkedIds.contains(R.id.chipFound)) {
-                filterByType("FOUND");
+                currentTypeFilter = "FOUND";
+            } else if (checkedIds.contains(R.id.chipFree)) {
+                currentTypeFilter = "FREE";
             } else {
-                adapter.filterList(postList); // Show All
+                currentTypeFilter = "ALL";
             }
+            applyFilters(searchView.getQuery().toString(), currentTypeFilter);
         });
+
+        // ৭. অ্যাড বাটন
+        FloatingActionButton fabAdd = findViewById(R.id.fabAdd);
+        fabAdd.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, reportA.class)));
     }
 
-    private void filterByTitle(String text) {
+    private void applyFilters(String searchText, String typeFilter) {
         List<Post> filteredList = new ArrayList<>();
+
+        // টেস্ট করার জন্য ০ দিলাম (যাতে সাথে সাথে ফ্রি সেকশনে দেখায়)
+        // পরে এটি পরিবর্তন করে ১ বা ২ মিনিট (2L * 60 * 1000) করে দিবেন
+        long thresholdInMillis = 0L;
+        long currentTime = System.currentTimeMillis();
+
         for (Post item : postList) {
-            if (item.getTitle().toLowerCase().contains(text.toLowerCase())) {
-                filteredList.add(item);
+            boolean matchesSearch = item.getTitle().toLowerCase().contains(searchText.toLowerCase());
+            boolean matchesChip = false;
+
+            if (typeFilter.equals("ALL")) {
+                matchesChip = true;
+            } else if (typeFilter.equals("LOST")) {
+                matchesChip = item.getType().equalsIgnoreCase("LOST");
+            } else if (typeFilter.equals("FOUND")) {
+                // শুধুমাত্র নতুন পাওয়া আইটেমগুলো (২ মিনিটের কম)
+                matchesChip = item.getType().equalsIgnoreCase("FOUND") && (currentTime - item.getTimestamp() <= thresholdInMillis);
+            } else if (typeFilter.equals("FREE")) {
+                // শুধুমাত্র পুরনো পাওয়া আইটেমগুলো (২ মিনিটের বেশি)
+                matchesChip = item.getType().equalsIgnoreCase("FOUND") && (currentTime - item.getTimestamp() > thresholdInMillis);
             }
-        }
-        adapter.filterList(filteredList);
-    }
 
-    private void filterByType(String type) {
-        List<Post> filteredList = new ArrayList<>();
-        for (Post item : postList) {
-            if (item.getType().equalsIgnoreCase(type)) {
+            if (matchesSearch && matchesChip) {
                 filteredList.add(item);
             }
         }
@@ -118,28 +120,31 @@ public class MainActivity extends AppCompatActivity {
         db.collection("items")
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((value, error) -> {
-                    if (error != null) {
-                        Toast.makeText(MainActivity.this, "Error loading: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+                    if (error != null) return;
 
                     if (value != null) {
                         postList.clear();
                         for (DocumentSnapshot doc : value.getDocuments()) {
-                            String title = doc.getString("title");
-                            String location = doc.getString("location");
-                            String description = doc.getString("description");
-                            String type = doc.getString("type");
-                            String question = doc.getString("question");
-                            String answer = doc.getString("answer");
-                            String userId = doc.getString("userId");
-                            String imageUrl = doc.getString("imageUrl");
-                            String category = doc.getString("category");
-                            String postId = doc.getId();
+                            long ts = doc.getLong("timestamp") != null ? doc.getLong("timestamp") : 0;
 
-                            postList.add(new Post(title, location, description, type, question, answer, userId, imageUrl, category, postId));
+                            postList.add(new Post(
+                                    doc.getString("title"),
+                                    doc.getString("location"),
+                                    doc.getString("description"),
+                                    doc.getString("type"),
+                                    doc.getString("question"),
+                                    doc.getString("answer"),
+                                    doc.getString("userId"),
+                                    doc.getString("imageUrl"),
+                                    doc.getString("category"),
+                                    doc.getId(),
+                                    ts
+                            ));
                         }
                         adapter.notifyDataSetChanged();
+                        if (searchView != null) {
+                            applyFilters(searchView.getQuery().toString(), currentTypeFilter);
+                        }
                     }
                 });
     }
@@ -153,29 +158,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-
         if (id == R.id.action_logout) {
             FirebaseAuth.getInstance().signOut();
-            Intent intent = new Intent(MainActivity.this, WelcomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
+            startActivity(new Intent(MainActivity.this, WelcomeActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             finish();
             return true;
-        }
-
-        else if (id == R.id.action_responses) {
-            Intent intent = new Intent(MainActivity.this, ResponsesActivity.class);
-            startActivity(intent);
+        } else if (id == R.id.action_responses) {
+            startActivity(new Intent(MainActivity.this, ResponsesActivity.class));
+            return true;
+        } else if (id == R.id.action_profile) {
+            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
             return true;
         }
-
-        // NEW: Navigate to Profile screen
-        else if (id == R.id.action_profile) {
-            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
-            startActivity(intent);
-            return true;
-        }
-
         return super.onOptionsItemSelected(item);
     }
 }
