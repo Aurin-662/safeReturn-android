@@ -95,16 +95,17 @@ public class MainActivity extends AppCompatActivity {
                     if (value != null) {
                         postList.clear();
                         for (DocumentSnapshot doc : value.getDocuments()) {
-                            // Extract ALL fields including the new security ones
+                            // Extract ALL fields including security and image URL
                             String title = doc.getString("title");
                             String location = doc.getString("location");
                             String type = doc.getString("type");
                             String question = doc.getString("question");
                             String answer = doc.getString("answer");
                             String userId = doc.getString("userId");
+                            String imageUrl = doc.getString("imageUrl"); // NEW: Get image URL
 
-                            // Create Post object with 6 arguments
-                            postList.add(new Post(title, location, type, question, answer, userId));
+                            // Create Post object with 7 arguments (Matching updated Post.java)
+                            postList.add(new Post(title, location, type, question, answer, userId, imageUrl));
                         }
                         adapter.notifyDataSetChanged();
                     }

@@ -36,7 +36,15 @@
         app:layout_constraintTop_toBottomOf="@id/searchView"
         app:layout_constraintBottom_toBottomOf="parent" />
 
-<!--    &lt;!&ndash; List of items &ndash;&gt;-->
+    <!-- activity_report.xml এ যোগ করুন -->
+    <EditText
+        android:id="@+id/etImageUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Paste Image Link (Optional)"
+        android:layout_marginTop="10dp"/>
+
+    <!--    &lt;!&ndash; List of items &ndash;&gt;-->
 <!--    <androidx.recyclerview.widget.RecyclerView-->
 <!--        android:id="@+id/rvItems"-->
 <!--        android:layout_width="match_parent"-->

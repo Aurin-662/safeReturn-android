@@ -4,9 +4,11 @@ import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import java.util.List;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
@@ -37,17 +39,28 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             holder.tvType.setTextColor(0xFF00FF00); // Green
         }
 
-        // --- UPDATED: PASS SECURITY INFO TO DETAILS ---
+        // --- NEW: DISPLAY IMAGE IN LIST USING GLIDE ---
+        if (post.getImageUrl() != null && !post.getImageUrl().isEmpty()) {
+            Glide.with(holder.itemView.getContext())
+                    .load(post.getImageUrl())
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.stat_notify_error)
+                    .into(holder.ivPostImage);
+        } else {
+            // Reset to default icon if no URL exists
+            holder.ivPostImage.setImageResource(android.R.drawable.ic_menu_gallery);
+        }
+
+        // --- UPDATED: PASS ALL INFO (INCLUDING IMAGE) TO DETAILS ---
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), activity_details.class);
             intent.putExtra("title", post.getTitle());
             intent.putExtra("location", post.getLocation());
             intent.putExtra("type", post.getType());
-
-            // New extras for security verification
             intent.putExtra("question", post.getQuestion());
             intent.putExtra("answer", post.getAnswer());
             intent.putExtra("userId", post.getUserId());
+            intent.putExtra("imageUrl", post.getImageUrl()); // Pass the image URL
 
             v.getContext().startActivity(intent);
         });
@@ -60,11 +73,14 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvLocation, tvType;
+        ImageView ivPostImage; // Added for the Image
+
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvTitle = itemView.findViewById(R.id.tvPostTitle);
             tvLocation = itemView.findViewById(R.id.tvPostLocation);
             tvType = itemView.findViewById(R.id.tvPostType);
+            ivPostImage = itemView.findViewById(R.id.ivPostImage); // ID from item_post.xml
         }
     }
 

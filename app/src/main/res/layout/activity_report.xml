@@ -16,7 +16,7 @@
             android:textStyle="bold"
             android:layout_marginBottom="20dp"/>
 
-        <!-- Image Placeholder -->
+        <!-- Image Placeholder (Used for Preview if needed) -->
         <ImageView
             android:id="@+id/ivItemImage"
             android:layout_width="match_parent"
@@ -25,21 +25,22 @@
             android:scaleType="centerInside"
             android:src="@android:drawable/ic_menu_camera" />
 
-        <Button
-            android:id="@+id/btnUploadImage"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
+        <!-- NEW: Field to paste the Image Link -->
+        <EditText
+            android:id="@+id/etImageUrl"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Add Photo" />
+            android:hint="Paste Image Link here (Optional)"
+            android:inputType="textUri"
+            android:layout_marginTop="10dp"/>
 
         <RadioGroup
             android:id="@+id/rgType"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="10dp">
-            <RadioButton android:id="@+id/rbLost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lost" android:layout_weight="1"/>
+            android:layout_marginTop="15dp">
+            <RadioButton android:id="@+id/rbLost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lost" android:layout_weight="1" android:checked="true"/>
             <RadioButton android:id="@+id/rbFound" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Found" android:layout_weight="1"/>
         </RadioGroup>
 
@@ -47,7 +48,7 @@
             android:id="@+id/etItemTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Item Name (e.g. Keys)"
+            android:hint="Item Name (e.g. Blue Wallet)"
             android:layout_marginTop="10dp"/>
 
         <EditText
@@ -61,29 +62,44 @@
             android:id="@+id/etDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Description"
+            android:hint="Additional Description"
             android:gravity="top"
-            android:lines="4"
+            android:lines="3"
             android:layout_marginTop="10dp"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="10dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Security Verification"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"/>
+
         <EditText
             android:id="@+id/etSecurityQuestion"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Security Question (e.g. Color of the wallet?)"/>
+            android:hint="Question (e.g. What color is the keychain?)"
+            android:layout_marginTop="5dp"/>
 
         <EditText
             android:id="@+id/etSecurityAnswer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Correct Answer"/>
-
-
+            android:hint="Correct Answer"
+            android:layout_marginTop="5dp"/>
 
         <Button
             android:id="@+id/btnSubmitReport"
             android:layout_width="match_parent"
             android:layout_height="60dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="30dp"
             android:text="Post Report" />
 
     </LinearLayout>

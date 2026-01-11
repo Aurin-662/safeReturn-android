@@ -6,15 +6,19 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.bumptech.glide.Glide; // Required for loading images
 import com.google.firebase.firestore.FirebaseFirestore;
 
 public class activity_details extends AppCompatActivity {
 
-    private String title, location, type, question, answer, posterUserId;
+    private String title, location, type, question, answer, posterUserId, imageUrl;
     private TextView tvTitle, tvType, tvDescription;
+    private ImageView ivDetailImage;
     private Button btnAction;
 
     @Override
@@ -29,11 +33,13 @@ public class activity_details extends AppCompatActivity {
         question = getIntent().getStringExtra("question");
         answer = getIntent().getStringExtra("answer");
         posterUserId = getIntent().getStringExtra("userId");
+        imageUrl = getIntent().getStringExtra("imageUrl"); // NEW: Get image URL
 
         // 2. Link to XML IDs
         tvTitle = findViewById(R.id.tvDetailTitle);
         tvType = findViewById(R.id.tvDetailType);
         tvDescription = findViewById(R.id.tvDetailDescription);
+        ivDetailImage = findViewById(R.id.ivDetailImage); // NEW: Image Link
         btnAction = findViewById(R.id.btnCallUser);
 
         // 3. Set basic content
@@ -41,14 +47,23 @@ public class activity_details extends AppCompatActivity {
         if (type != null) tvType.setText(type);
         tvDescription.setText("Location: " + location + "\n\nYou must verify your identity to see contact details.");
 
-        // 4. Change button text based on Type (LOST/FOUND)
+        // 4. Load Image using Glide
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            Glide.with(this)
+                    .load(imageUrl)
+                    .placeholder(android.R.drawable.ic_menu_gallery) // Show while loading
+                    .error(android.R.drawable.stat_notify_error)      // Show if link fails
+                    .into(ivDetailImage);
+        }
+
+        // 5. Change button text based on Type (LOST/FOUND)
         if ("LOST".equalsIgnoreCase(type)) {
             btnAction.setText("I Found It!");
         } else {
             btnAction.setText("Claim Item");
         }
 
-        // 5. Set Click Listener for Verification
+        // 6. Set Click Listener for Verification
         btnAction.setOnClickListener(v -> {
             showVerificationDialog();
         });
