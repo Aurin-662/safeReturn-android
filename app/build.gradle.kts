@@ -41,4 +41,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    // Fixed Firebase Auth syntax for Kotlin DSL (.kts)
+    implementation("com.google.firebase:firebase-auth:23.1.0")
 }

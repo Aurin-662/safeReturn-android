@@ -11,30 +11,38 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme._1">
-        <activity
-            android:exported="true"
-            android:name=".loginA">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+        <!-- 1. Welcome Screen: This must be the ONLY Launcher -->
         <activity
-            android:name=".signupA"
-            android:exported="false" />
-        <activity
-            android:name=".MainActivity"
+            android:name=".WelcomeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 2. Login Page -->
+        <activity
+            android:name=".loginA"
+            android:exported="false" />
+
+        <!-- 3. Signup Page -->
+        <activity
+            android:name=".signupA"
+            android:exported="false" />
+
+        <!-- 4. Home Feed Page (MainActivity) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
+        <!-- 5. Report Page -->
         <activity
             android:name=".reportA"
             android:exported="false" />
+        <activity android:name=".activity_details" android:exported="false" />
+
     </application>
 
 </manifest>
