@@ -2,11 +2,15 @@ package com.example.a1;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,45 +18,58 @@ public class MainActivity extends AppCompatActivity {
 
     private List<Post> postList;
     private PostAdapter adapter;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 1. Initialize List and Adapter
-        postList = new ArrayList<>();
-        // Add one initial dummy item
-       // postList.add(new Post("Example Item", "Library", "LOST"));
+        // ১. ডাটাবেজ ইনিশিয়ালাইজ করা
+        db = FirebaseFirestore.getInstance();
 
+        // ২. লিস্ট এবং অ্যাডাপ্টার সেটআপ
+        postList = new ArrayList<>();
         RecyclerView rvItems = findViewById(R.id.rvItems);
         rvItems.setLayoutManager(new LinearLayoutManager(this));
         adapter = new PostAdapter(postList);
         rvItems.setAdapter(adapter);
 
-        // 2. Setup FAB to open reportA for a result
+        // ৩. Firestore থেকে রিয়েল-টাইম ডাটা লোড করা
+        loadDataFromFirestore();
+
+        // ৪. FAB সেটআপ (আইটেম রিপোর্ট করার জন্য)
         FloatingActionButton fabAdd = findViewById(R.id.fabAdd);
         fabAdd.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, reportA.class);
-            startActivityForResult(intent, 101); // 101 is a request code
+            startActivity(intent); // এখন আর ForResult দরকার নেই, কারণ ডাটাবেজ থেকে অটো আসবে
         });
     }
 
-    // 3. This method runs when you return from reportA
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    private void loadDataFromFirestore() {
+        // 'items' কালেকশন থেকে সময় অনুযায়ী (Timestamp) ডাটা আনা
+        db.collection("items")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Toast.makeText(MainActivity.this, "Error loading: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
-        if (requestCode == 101 && resultCode == RESULT_OK && data != null) {
-            String title = data.getStringExtra("title");
-            String location = data.getStringExtra("location");
-            String type = data.getStringExtra("type");
+                    if (value != null) {
+                        postList.clear(); // পুরনো লিস্ট ক্লিয়ার করা যাতে ডুপ্লিকেট না হয়
+                        for (DocumentSnapshot doc : value.getDocuments()) {
+                            // ডাটাবেজের ফিল্ডের সাথে মিলিয়ে ডাটা পড়া
+                            String title = doc.getString("title");
+                            String location = doc.getString("location");
+                            String type = doc.getString("type");
 
-            // Add the new data to our list
-            postList.add(0, new Post(title, location, type));
-
-            // Tell the adapter to refresh the screen
-            adapter.notifyItemInserted(0);
-            ((RecyclerView) findViewById(R.id.rvItems)).scrollToPosition(0);        }
+                            postList.add(new Post(title, location, type));
+                        }
+                        adapter.notifyDataSetChanged(); // UI আপডেট করা
+                    }
+                });
     }
+
+
 }
