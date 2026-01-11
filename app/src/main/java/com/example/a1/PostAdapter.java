@@ -32,14 +32,14 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
         holder.tvLocation.setText("Location: " + post.getLocation());
         holder.tvType.setText(post.getType());
 
-        // Set color based on status
+        // Set text color based on status (LOST/FOUND)
         if ("LOST".equalsIgnoreCase(post.getType())) {
             holder.tvType.setTextColor(0xFFFF0000); // Red
         } else {
             holder.tvType.setTextColor(0xFF00FF00); // Green
         }
 
-        // --- NEW: DISPLAY IMAGE IN LIST USING GLIDE ---
+        // --- Load Image using Glide ---
         if (post.getImageUrl() != null && !post.getImageUrl().isEmpty()) {
             Glide.with(holder.itemView.getContext())
                     .load(post.getImageUrl())
@@ -47,20 +47,26 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
                     .error(android.R.drawable.stat_notify_error)
                     .into(holder.ivPostImage);
         } else {
-            // Reset to default icon if no URL exists
             holder.ivPostImage.setImageResource(android.R.drawable.ic_menu_gallery);
         }
 
-        // --- UPDATED: PASS ALL INFO (INCLUDING IMAGE) TO DETAILS ---
+        // --- Handle Click to show Details ---
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), activity_details.class);
+
+            // Passing all fields to the details page
             intent.putExtra("title", post.getTitle());
             intent.putExtra("location", post.getLocation());
             intent.putExtra("type", post.getType());
             intent.putExtra("question", post.getQuestion());
             intent.putExtra("answer", post.getAnswer());
             intent.putExtra("userId", post.getUserId());
-            intent.putExtra("imageUrl", post.getImageUrl()); // Pass the image URL
+            intent.putExtra("imageUrl", post.getImageUrl());
+            intent.putExtra("category", post.getCategory());
+            intent.putExtra("postId", post.getPostId());
+
+            // CRITICAL: Passing description so Edit Mode works correctly
+            intent.putExtra("description", post.getDescription());
 
             v.getContext().startActivity(intent);
         });
@@ -73,17 +79,18 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvLocation, tvType;
-        ImageView ivPostImage; // Added for the Image
+        ImageView ivPostImage;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvTitle = itemView.findViewById(R.id.tvPostTitle);
             tvLocation = itemView.findViewById(R.id.tvPostLocation);
             tvType = itemView.findViewById(R.id.tvPostType);
-            ivPostImage = itemView.findViewById(R.id.ivPostImage); // ID from item_post.xml
+            ivPostImage = itemView.findViewById(R.id.ivPostImage);
         }
     }
 
+    // Filter method for Search and Chips
     public void filterList(List<Post> filteredList) {
         this.postList = filteredList;
         notifyDataSetChanged();

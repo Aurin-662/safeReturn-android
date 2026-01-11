@@ -1,3 +1,11 @@
 <resources>
-    <string name="app_name">1</string>
+    <string name="app_name">Campus Lost &amp; Found</string>
+    <string-array name="categories_array">
+        <item>Select Category</item>
+        <item>Electronics</item>
+        <item>Documents/IDs</item>
+        <item>Keys</item>
+        <item>Wallets/Bags</item>
+        <item>Others</item>
+    </string-array>
 </resources>

@@ -11,6 +11,8 @@ import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -67,16 +69,38 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                filter(newText);
+                filterByTitle(newText);
                 return true;
+            }
+        });
+
+        // 7. Setup LOST/FOUND Filter Chips
+        ChipGroup chipGroup = findViewById(R.id.chipGroup);
+        chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.contains(R.id.chipLost)) {
+                filterByType("LOST");
+            } else if (checkedIds.contains(R.id.chipFound)) {
+                filterByType("FOUND");
+            } else {
+                adapter.filterList(postList); // Show All
             }
         });
     }
 
-    private void filter(String text) {
+    private void filterByTitle(String text) {
         List<Post> filteredList = new ArrayList<>();
         for (Post item : postList) {
             if (item.getTitle().toLowerCase().contains(text.toLowerCase())) {
+                filteredList.add(item);
+            }
+        }
+        adapter.filterList(filteredList);
+    }
+
+    private void filterByType(String type) {
+        List<Post> filteredList = new ArrayList<>();
+        for (Post item : postList) {
+            if (item.getType().equalsIgnoreCase(type)) {
                 filteredList.add(item);
             }
         }
@@ -95,17 +119,20 @@ public class MainActivity extends AppCompatActivity {
                     if (value != null) {
                         postList.clear();
                         for (DocumentSnapshot doc : value.getDocuments()) {
-                            // Extract ALL fields including security and image URL
+                            // Extract ALL 10 fields matching the Post constructor
                             String title = doc.getString("title");
                             String location = doc.getString("location");
+                            String description = doc.getString("description"); // NEW: Extracted description
                             String type = doc.getString("type");
                             String question = doc.getString("question");
                             String answer = doc.getString("answer");
                             String userId = doc.getString("userId");
-                            String imageUrl = doc.getString("imageUrl"); // NEW: Get image URL
+                            String imageUrl = doc.getString("imageUrl");
+                            String category = doc.getString("category");
+                            String postId = doc.getId();
 
-                            // Create Post object with 7 arguments (Matching updated Post.java)
-                            postList.add(new Post(title, location, type, question, answer, userId, imageUrl));
+                            // Create Post object with 10 arguments
+                            postList.add(new Post(title, location, description, type, question, answer, userId, imageUrl, category, postId));
                         }
                         adapter.notifyDataSetChanged();
                     }

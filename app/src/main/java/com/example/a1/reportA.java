@@ -3,10 +3,12 @@ package com.example.a1;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -21,22 +23,25 @@ import java.util.Map;
 public class reportA extends AppCompatActivity {
 
     private EditText etTitle, etLocation, etDescription, etSecurityQuestion, etSecurityAnswer, etImageUrl;
-    private RadioButton rbLost;
+    private RadioButton rbLost, rbFound;
     private Button btnSubmit;
     private ImageView ivItemImage;
+    private Spinner spCategory;
 
-    // Firebase Firestore object
     private FirebaseFirestore db;
+
+    // Edit Mode Variables
+    private boolean isEditMode = false;
+    private String existingPostId = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_report);
 
-        // ১. ডাটাবেজ ইনিশিয়ালাইজ করা
         db = FirebaseFirestore.getInstance();
 
-        // ২. ভিউগুলো খুঁজে বের করা
+        // Find Views
         etTitle = findViewById(R.id.etItemTitle);
         etLocation = findViewById(R.id.etLocation);
         etDescription = findViewById(R.id.etDescription);
@@ -44,38 +49,75 @@ public class reportA extends AppCompatActivity {
         etSecurityAnswer = findViewById(R.id.etSecurityAnswer);
         etImageUrl = findViewById(R.id.etImageUrl);
         ivItemImage = findViewById(R.id.ivItemImage);
-
         rbLost = findViewById(R.id.rbLost);
+        rbFound = findViewById(R.id.rbFound);
         btnSubmit = findViewById(R.id.btnSubmitReport);
+        spCategory = findViewById(R.id.spCategory);
 
-        // --- ইমেজ প্রিভিউ লজিক (Updated with better Error Handling) ---
+        // Setup Spinner
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.categories_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spCategory.setAdapter(adapter);
+
+        // Check if we are in Edit Mode
+        if (getIntent().hasExtra("isEdit")) {
+            isEditMode = getIntent().getBooleanExtra("isEdit", false);
+            existingPostId = getIntent().getStringExtra("postId");
+            setupEditMode();
+        }
+
+        // Image Preview Logic
         etImageUrl.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String url = s.toString().trim();
-                if (!url.isEmpty()) {
-                    // Glide ব্যবহার করে ইমেজ লোড করা
-                    Glide.with(reportA.this)
-                            .load(url)
-                            .diskCacheStrategy(DiskCacheStrategy.ALL) // ক্যাশ মেমোরি ব্যবহার করবে দ্রুত লোড হওয়ার জন্য
-                            .placeholder(android.R.drawable.ic_menu_camera)
-                            .error(android.R.drawable.stat_notify_error)
-                            .into(ivItemImage);
-                } else {
-                    ivItemImage.setImageResource(android.R.drawable.ic_menu_camera);
-                }
+                loadImage(s.toString().trim());
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
 
-        btnSubmit.setOnClickListener(v -> {
-            saveItemToFirestore();
-        });
+        btnSubmit.setOnClickListener(v -> saveItemToFirestore());
+    }
+
+    private void setupEditMode() {
+        // Change UI for Edit Mode
+        btnSubmit.setText("Update Report");
+        setTitle("Edit Report");
+
+        // Fill fields with existing data
+        etTitle.setText(getIntent().getStringExtra("title"));
+        etLocation.setText(getIntent().getStringExtra("location"));
+        etDescription.setText(getIntent().getStringExtra("description"));
+        etSecurityQuestion.setText(getIntent().getStringExtra("question"));
+        etSecurityAnswer.setText(getIntent().getStringExtra("answer"));
+        etImageUrl.setText(getIntent().getStringExtra("imageUrl"));
+
+        String type = getIntent().getStringExtra("type");
+        if ("LOST".equalsIgnoreCase(type)) rbLost.setChecked(true);
+        else rbFound.setChecked(true);
+
+        String category = getIntent().getStringExtra("category");
+        if (category != null) {
+            ArrayAdapter myAdap = (ArrayAdapter) spCategory.getAdapter();
+            int spinnerPosition = myAdap.getPosition(category);
+            spCategory.setSelection(spinnerPosition);
+        }
+
+        loadImage(etImageUrl.getText().toString());
+    }
+
+    private void loadImage(String url) {
+        if (!url.isEmpty()) {
+            Glide.with(reportA.this)
+                    .load(url)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(android.R.drawable.ic_menu_camera)
+                    .error(android.R.drawable.stat_notify_error)
+                    .into(ivItemImage);
+        }
     }
 
     private void saveItemToFirestore() {
@@ -86,41 +128,43 @@ public class reportA extends AppCompatActivity {
         String answer = etSecurityAnswer.getText().toString().trim();
         String imageUrl = etImageUrl.getText().toString().trim();
         String type = rbLost.isChecked() ? "LOST" : "FOUND";
+        String category = spCategory.getSelectedItem().toString();
 
-        // ইউজার লগইন আছে কিনা চেক করা
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            Toast.makeText(this, "User not logged in!", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        // ভ্যালিডেশন
-        if (title.isEmpty() || location.isEmpty() || question.isEmpty() || answer.isEmpty()) {
+        if (title.isEmpty() || location.isEmpty() || question.isEmpty() || answer.isEmpty() || category.equals("Select Category")) {
             Toast.makeText(this, "Please fill all required fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // ডাটাবেজে সেভ করার জন্য ম্যাপ তৈরি করা
         Map<String, Object> item = new HashMap<>();
         item.put("title", title);
         item.put("location", location);
         item.put("description", description);
         item.put("type", type);
+        item.put("category", category);
         item.put("question", question);
         item.put("answer", answer);
         item.put("userId", userId);
         item.put("imageUrl", imageUrl);
         item.put("timestamp", System.currentTimeMillis());
 
-
-        db.collection("items")
-                .add(item)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(reportA.this, "Item Posted Successfully!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(reportA.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+        if (isEditMode) {
+            // UPDATE existing document
+            db.collection("items").document(existingPostId)
+                    .set(item)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Updated successfully!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+        } else {
+            // ADD new document
+            db.collection("items").add(item)
+                    .addOnSuccessListener(doc -> {
+                        Toast.makeText(this, "Posted successfully!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+        }
     }
 }

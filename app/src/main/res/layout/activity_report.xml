@@ -1,6 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     android:padding="16dp">
 
     <LinearLayout
@@ -12,51 +15,97 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Report an Item"
-            android:textSize="22sp"
+            android:textSize="24sp"
             android:textStyle="bold"
+            android:textColor="@color/black"
             android:layout_marginBottom="20dp"/>
 
-        <!-- Image Placeholder (Used for Preview if needed) -->
-        <ImageView
-            android:id="@+id/ivItemImage"
+        <!-- Image Preview -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="200dp"
-            android:background="#EEEEEE"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_menu_camera" />
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#DDDDDD"
+            android:layout_marginBottom="10dp">
 
-        <!-- NEW: Field to paste the Image Link -->
+            <ImageView
+                android:id="@+id/ivItemImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#F5F5F5"
+                android:scaleType="centerCrop"
+                android:src="@android:drawable/ic_menu_camera" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Image Link Input -->
         <EditText
             android:id="@+id/etImageUrl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Paste Image Link here (Optional)"
+            android:hint="Paste Image Link (Optional)"
             android:inputType="textUri"
-            android:layout_marginTop="10dp"/>
+            android:minHeight="48dp"
+            android:layout_marginBottom="10dp"/>
 
+        <!-- LOST/FOUND Toggle -->
         <RadioGroup
             android:id="@+id/rgType"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="15dp">
-            <RadioButton android:id="@+id/rbLost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Lost" android:layout_weight="1" android:checked="true"/>
-            <RadioButton android:id="@+id/rbFound" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Found" android:layout_weight="1"/>
+            android:layout_marginBottom="15dp"
+            android:background="#F0F0F0"
+            android:padding="4dp">
+
+            <RadioButton
+                android:id="@+id/rbLost"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Lost"
+                android:layout_weight="1"
+                android:checked="true"/>
+
+            <RadioButton
+                android:id="@+id/rbFound"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Found"
+                android:layout_weight="1"/>
         </RadioGroup>
 
+        <!-- NEW: Category Spinner -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Category"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+
+        <Spinner
+            android:id="@+id/spCategory"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginBottom="15dp"
+            android:background="@android:drawable/btn_dropdown"
+            android:spinnerMode="dropdown" />
+
+        <!-- Item Info Fields -->
         <EditText
             android:id="@+id/etItemTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Item Name (e.g. Blue Wallet)"
-            android:layout_marginTop="10dp"/>
+            android:minHeight="48dp"
+            android:layout_marginBottom="10dp"/>
 
         <EditText
             android:id="@+id/etLocation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Last seen location"
-            android:layout_marginTop="10dp"/>
+            android:minHeight="48dp"
+            android:layout_marginBottom="10dp"/>
 
         <EditText
             android:id="@+id/etDescription"
@@ -65,42 +114,46 @@
             android:hint="Additional Description"
             android:gravity="top"
             android:lines="3"
-            android:layout_marginTop="10dp"/>
+            android:minHeight="48dp"
+            android:layout_marginBottom="20dp"/>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#DDDDDD"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="10dp"/>
+            android:layout_marginBottom="15dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Security Verification"
             android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"/>
+            android:textColor="?attr/colorPrimary"
+            android:layout_marginBottom="10dp"/>
 
         <EditText
             android:id="@+id/etSecurityQuestion"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Question (e.g. What color is the keychain?)"
-            android:layout_marginTop="5dp"/>
+            android:hint="Security Question"
+            android:minHeight="48dp"
+            android:layout_marginBottom="10dp"/>
 
         <EditText
             android:id="@+id/etSecurityAnswer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Correct Answer"
-            android:layout_marginTop="5dp"/>
+            android:minHeight="48dp"
+            android:layout_marginBottom="30dp"/>
 
         <Button
             android:id="@+id/btnSubmitReport"
             android:layout_width="match_parent"
             android:layout_height="60dp"
-            android:layout_marginTop="30dp"
-            android:text="Post Report" />
+            android:text="Post Report"
+            android:textSize="18sp"
+            app:cornerRadius="8dp" />
 
     </LinearLayout>
 </ScrollView>

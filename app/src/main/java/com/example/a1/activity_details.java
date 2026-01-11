@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -11,114 +12,169 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.bumptech.glide.Glide; // Required for loading images
+import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 public class activity_details extends AppCompatActivity {
 
-    private String title, location, type, question, answer, posterUserId, imageUrl;
-    private TextView tvTitle, tvType, tvDescription;
+    private String title, location, type, question, answer, posterUserId, imageUrl, postId, category, description;
+    private TextView tvTitle, tvType, tvDescription, tvPostedBy;
     private ImageView ivDetailImage;
-    private Button btnAction;
+    private Button btnAction, btnDelete, btnEdit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_details);
 
-        // 1. Receive data from PostAdapter
+        // 1. Receive data from Intent (Passed from PostAdapter)
         title = getIntent().getStringExtra("title");
         location = getIntent().getStringExtra("location");
         type = getIntent().getStringExtra("type");
         question = getIntent().getStringExtra("question");
         answer = getIntent().getStringExtra("answer");
         posterUserId = getIntent().getStringExtra("userId");
-        imageUrl = getIntent().getStringExtra("imageUrl"); // NEW: Get image URL
+        imageUrl = getIntent().getStringExtra("imageUrl");
+        postId = getIntent().getStringExtra("postId");
+        category = getIntent().getStringExtra("category");
+        description = getIntent().getStringExtra("description");
 
-        // 2. Link to XML IDs
+        // 2. Initialize Views
         tvTitle = findViewById(R.id.tvDetailTitle);
         tvType = findViewById(R.id.tvDetailType);
         tvDescription = findViewById(R.id.tvDetailDescription);
-        ivDetailImage = findViewById(R.id.ivDetailImage); // NEW: Image Link
+        tvPostedBy = findViewById(R.id.tvPostedBy);
+        ivDetailImage = findViewById(R.id.ivDetailImage);
         btnAction = findViewById(R.id.btnCallUser);
+        btnEdit = findViewById(R.id.btnEdit);
+        btnDelete = findViewById(R.id.btnDelete);
 
-        // 3. Set basic content
-        if (title != null) tvTitle.setText(title);
-        if (type != null) tvType.setText(type);
-        tvDescription.setText("Location: " + location + "\n\nYou must verify your identity to see contact details.");
+        // 3. Set UI Content
+        tvTitle.setText(title);
+        tvType.setText(type + " | " + (category != null ? category : "General"));
+        tvDescription.setText("Location: " + location + "\n\nVerify identity to see contact info.");
 
-        // 4. Load Image using Glide
+        // Load Image
         if (imageUrl != null && !imageUrl.isEmpty()) {
-            Glide.with(this)
-                    .load(imageUrl)
-                    .placeholder(android.R.drawable.ic_menu_gallery) // Show while loading
-                    .error(android.R.drawable.stat_notify_error)      // Show if link fails
-                    .into(ivDetailImage);
+            Glide.with(this).load(imageUrl).placeholder(android.R.drawable.ic_menu_gallery).into(ivDetailImage);
         }
 
-        // 5. Change button text based on Type (LOST/FOUND)
-        if ("LOST".equalsIgnoreCase(type)) {
-            btnAction.setText("I Found It!");
+        // 4. Ownership Logic: Show Edit/Delete only for the creator
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (currentUserId.equals(posterUserId)) {
+            btnEdit.setVisibility(View.VISIBLE);
+            btnDelete.setVisibility(View.VISIBLE);
+            btnAction.setVisibility(View.GONE); // Owner doesn't need to verify themselves
+            fetchPosterName(true);
         } else {
-            btnAction.setText("Claim Item");
+            btnEdit.setVisibility(View.GONE);
+            btnDelete.setVisibility(View.GONE);
+            btnAction.setVisibility(View.VISIBLE);
+            fetchPosterName(false);
         }
 
-        // 6. Set Click Listener for Verification
-        btnAction.setOnClickListener(v -> {
-            showVerificationDialog();
+        // 5. Button Listeners
+        btnAction.setOnClickListener(v -> showVerificationDialog());
+
+        btnDelete.setOnClickListener(v -> confirmDelete());
+
+        btnEdit.setOnClickListener(v -> {
+            Intent intent = new Intent(activity_details.this, reportA.class);
+            intent.putExtra("isEdit", true);
+            intent.putExtra("postId", postId);
+            intent.putExtra("title", title);
+            intent.putExtra("location", location);
+            intent.putExtra("description", description);
+            intent.putExtra("imageUrl", imageUrl);
+            intent.putExtra("category", category);
+            intent.putExtra("question", question);
+            intent.putExtra("answer", answer);
+            intent.putExtra("type", type);
+            startActivity(intent);
         });
+    }
+
+    private void fetchPosterName(boolean isOwner) {
+        if (isOwner) {
+            tvPostedBy.setText("Posted by: You");
+            return;
+        }
+
+        // posterUserId ব্যবহার করে users কালেকশন থেকে নাম আনা
+        FirebaseFirestore.getInstance().collection("users").document(posterUserId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        // নিশ্চিত করুন যে আপনার Firestore-এ ফিল্ডের নাম 'firstName' ই আছে
+                        String name = doc.getString("firstName");
+
+                        if (name != null && !name.isEmpty()) {
+                            tvPostedBy.setText("Posted by: " + name);
+                        } else {
+                            tvPostedBy.setText("Posted by: Unknown User");
+                        }
+                    } else {
+                        // যদি ইউজার প্রোফাইল না পাওয়া যায় (পুরনো ডাটা হলে এমন হতে পারে)
+                        tvPostedBy.setText("Posted by: Registered Student");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    tvPostedBy.setText("Posted by: Error loading name");
+                });
+    }
+
+
+    private void confirmDelete() {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Post")
+                .setMessage("Are you sure? This cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    FirebaseFirestore.getInstance().collection("items").document(postId)
+                            .delete()
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Post removed", Toast.LENGTH_SHORT).show();
+                                finish();
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showVerificationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Security Verification");
-        builder.setMessage("The reporter asked: " + question);
+        builder.setTitle("Security Check");
+        builder.setMessage("The reporter asks: " + question);
 
-        // Create an input field for the answer
         final EditText input = new EditText(this);
-        input.setHint("Type your answer here...");
+        input.setHint("Answer here...");
         builder.setView(input);
 
         builder.setPositiveButton("Verify", (dialog, which) -> {
             String userResponse = input.getText().toString().trim();
-
             if (userResponse.equalsIgnoreCase(answer)) {
-                Toast.makeText(this, "Verified Successfully!", Toast.LENGTH_SHORT).show();
-                fetchPosterContactInfo();
+                revealContact();
             } else {
-                Toast.makeText(this, "Wrong Answer. Try again.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Wrong answer!", Toast.LENGTH_SHORT).show();
             }
         });
-
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Cancel", null);
         builder.show();
     }
 
-    private void fetchPosterContactInfo() {
-        // Fetch the phone number and name from the 'users' collection
+    private void revealContact() {
         FirebaseFirestore.getInstance().collection("users").document(posterUserId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String phone = documentSnapshot.getString("phone");
-                        String name = documentSnapshot.getString("firstName") + " " + documentSnapshot.getString("lastName");
-
-                        // Update Description
-                        tvDescription.setText("Verified Owner/Finder: " + name + "\nPhone: " + phone);
-
-                        // Change Button to actually Call
-                        btnAction.setText("Call " + name);
+                .get().addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        String phone = doc.getString("phone");
+                        tvDescription.setText("Verified Contact: " + phone);
+                        btnAction.setText("Call Now");
                         btnAction.setOnClickListener(v -> {
-                            Intent callIntent = new Intent(Intent.ACTION_DIAL);
-                            callIntent.setData(Uri.parse("tel:" + phone));
-                            startActivity(callIntent);
+                            Intent intent = new Intent(Intent.ACTION_DIAL);
+                            intent.setData(Uri.parse("tel:" + phone));
+                            startActivity(intent);
                         });
-                    } else {
-                        Toast.makeText(this, "User profile not found.", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error fetching contact: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 }
