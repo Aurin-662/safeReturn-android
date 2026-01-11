@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class reportA extends AppCompatActivity {
 
-    private EditText etTitle, etLocation, etDescription;
+    private EditText etTitle, etLocation, etDescription, etSecurityQuestion, etSecurityAnswer;
     private RadioButton rbLost;
     private Button btnSubmit;
 
@@ -34,6 +34,11 @@ public class reportA extends AppCompatActivity {
         etTitle = findViewById(R.id.etItemTitle);
         etLocation = findViewById(R.id.etLocation);
         etDescription = findViewById(R.id.etDescription);
+
+        // --- NEW: Security Question/Answer Views ---
+        etSecurityQuestion = findViewById(R.id.etSecurityQuestion);
+        etSecurityAnswer = findViewById(R.id.etSecurityAnswer);
+
         rbLost = findViewById(R.id.rbLost);
         btnSubmit = findViewById(R.id.btnSubmitReport);
 
@@ -46,11 +51,16 @@ public class reportA extends AppCompatActivity {
         String title = etTitle.getText().toString().trim();
         String location = etLocation.getText().toString().trim();
         String description = etDescription.getText().toString().trim();
+        String question = etSecurityQuestion.getText().toString().trim();
+        String answer = etSecurityAnswer.getText().toString().trim();
         String type = rbLost.isChecked() ? "LOST" : "FOUND";
-        String userEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
 
-        if (title.isEmpty() || location.isEmpty()) {
-            Toast.makeText(this, "Title and Location are required", Toast.LENGTH_SHORT).show();
+        // Use unique User ID (UID) instead of just email for better linking
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // Validation: All fields are required for security
+        if (title.isEmpty() || location.isEmpty() || question.isEmpty() || answer.isEmpty()) {
+            Toast.makeText(this, "Title, Location, Question and Answer are required", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -60,8 +70,10 @@ public class reportA extends AppCompatActivity {
         item.put("location", location);
         item.put("description", description);
         item.put("type", type);
-        item.put("userEmail", userEmail);
-        item.put("timestamp", System.currentTimeMillis()); // সময় সেভ রাখা যাতে সিরিয়াল করা যায়
+        item.put("question", question); // Security Question
+        item.put("answer", answer);     // Secret Answer
+        item.put("userId", userId);     // Link to the user who posted it
+        item.put("timestamp", System.currentTimeMillis());
 
         // Firestore-এ 'items' নামে একটি কালেকশনে ডাটা সেভ করা
         db.collection("items")

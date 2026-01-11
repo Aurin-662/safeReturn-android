@@ -40,6 +40,11 @@
           <theme>@style/Theme._1</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/menu/main_menu.xml">
+        <config>
+          <theme>@style/Theme._1</theme>
+        </config>
+      </layout>
     </layouts>
   </component>
   <component name="AutoImportSettings">
@@ -78,6 +83,7 @@
       <list>
         <option value="layoutResourceFile" />
         <option value="Class" />
+        <option value="resourceFile" />
       </list>
     </option>
   </component>

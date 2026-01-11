@@ -13,16 +13,37 @@
         android:background="?attr/colorPrimary"
         app:title="Campus Lost &amp; Found"
         app:titleTextColor="@color/white"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- List of items -->
+    <!-- Inside activity_main.xml -->
+    <androidx.appcompat.widget.SearchView
+        android:id="@+id/searchView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        app:queryHint="Search items..."
+        app:iconifiedByDefault="false"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+
+    <!-- Change rvItems to constrain to searchView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvItems"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:padding="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+        app:layout_constraintTop_toBottomOf="@id/searchView"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+<!--    &lt;!&ndash; List of items &ndash;&gt;-->
+<!--    <androidx.recyclerview.widget.RecyclerView-->
+<!--        android:id="@+id/rvItems"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="0dp"-->
+<!--        android:padding="8dp"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/toolbar" />-->
 
     <!-- Button to add new report -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

@@ -37,12 +37,18 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             holder.tvType.setTextColor(0xFF00FF00); // Green
         }
 
-        // --- NEW: HANDLE CLICK TO SHOW DETAILS ---
+        // --- UPDATED: PASS SECURITY INFO TO DETAILS ---
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), activity_details.class);
             intent.putExtra("title", post.getTitle());
             intent.putExtra("location", post.getLocation());
             intent.putExtra("type", post.getType());
+
+            // New extras for security verification
+            intent.putExtra("question", post.getQuestion());
+            intent.putExtra("answer", post.getAnswer());
+            intent.putExtra("userId", post.getUserId());
+
             v.getContext().startActivity(intent);
         });
     }
@@ -60,5 +66,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             tvLocation = itemView.findViewById(R.id.tvPostLocation);
             tvType = itemView.findViewById(R.id.tvPostType);
         }
+    }
+
+    public void filterList(List<Post> filteredList) {
+        this.postList = filteredList;
+        notifyDataSetChanged();
     }
 }

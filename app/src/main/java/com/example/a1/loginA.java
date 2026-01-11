@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView; // ADDED IMPORT
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
@@ -18,10 +19,13 @@ public class loginA extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
 
+        // Initialize Views
         EditText etEmail = findViewById(R.id.etEmail);
         EditText etPassword = findViewById(R.id.etPassword);
         Button btnLogin = findViewById(R.id.btnLogin);
+        TextView tvGoToSignup = findViewById(R.id.tvGoToSignup); // ADDED INITIALIZATION
 
+        // --- LOGIN BUTTON LOGIC ---
         btnLogin.setOnClickListener(v -> {
             String email = etEmail.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
@@ -42,6 +46,12 @@ public class loginA extends AppCompatActivity {
                             Toast.makeText(loginA.this, "Login Failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                         }
                     });
+        });
+
+        // --- NEW: SIGNUP NAVIGATION LOGIC ---
+        tvGoToSignup.setOnClickListener(v -> {
+            Intent intent = new Intent(loginA.this, signupA.class);
+            startActivity(intent);
         });
     }
 }
